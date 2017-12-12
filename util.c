@@ -651,7 +651,7 @@ static int b58check(unsigned char *bin, size_t binsz, const char *b58)
 
 size_t address_to_script(unsigned char *out, size_t outsz, const char *addr)
 {
-	unsigned char addrbin[25];
+	unsigned char addrbin[26];
 	int addrver;
 	size_t rv;
 

@@ -399,9 +399,9 @@ static bool gbt_work_decode(const json_t *val, struct work *work)
 		goto out;
 	}
 	version = json_integer_value(tmp);
-	if (version > 2) {
+	if (version > 4) {
 		if (version_reduce) {
-			version = 2;
+			version = 4;
 		} else if (!version_force) {
 			applog(LOG_ERR, "Unrecognized block version: %u", version);
 			goto out;
