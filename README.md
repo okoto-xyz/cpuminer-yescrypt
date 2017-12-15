@@ -40,21 +40,19 @@ Notes for AIX users:
 	* GNU-style long options are not supported, but are accessible
 	  via configuration file
 
+
 Windows build instructions on Ubuntu 16.04LTS:
+
 	sudo apt-get install gcc-mingw-w64
 	cd cpuminer/depend
 	sh depend.sh
 	cd cpuminer
 	./autogen.sh
 	LDFLAGS="-L depend/curl-7.38.0-devel-mingw64/lib64 -static" LIBCURL="-lcurldll" \
-		CFLAGS="-O3 -msse4.1 -funroll-loops -fomit-frame-pointer" \
-		./configure --host=x86_64-w64-mingw32 --with-libcurl=depend/curl-7.38.0-devel-mingw64
+	CFLAGS="-O3 -msse4.1 -funroll-loops -fomit-frame-pointer" \
+	./configure --host=x86_64-w64-mingw32 --with-libcurl=depend/curl-7.38.0-devel-mingw64
 	make
-	#For Win32
-	#LDFLAGS="-L depend/curl-7.38.0-devel-mingw32/lib -static" LIBCURL="-lcurldll" \
-	#	CFLAGS="-O3 -msse4.1 -funroll-loops -fomit-frame-pointer" \
-	#	./configure --host=i686-w64-mingw32 --with-libcurl=depend/curl-7.38.0-devel-mingw32
-	#make
+
 
 Architecture-specific notes:
 
