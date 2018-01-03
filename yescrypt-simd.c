@@ -33,14 +33,7 @@
  * gcc bug 54349 (fixed for gcc 4.9+).  On 32-bit, it's of direct help.  AVX
  * and XOP are of further help either way.
  */
-#ifndef __SSE4_1__
-#warning "Consider enabling SSE4.1, AVX, or XOP in the C compiler for significantly better performance"
-#endif
-
-#include <emmintrin.h>
-#ifdef __XOP__
-#include <x86intrin.h>
-#endif
+#include <arm_neon.h>
 
 #include <errno.h>
 #include <stdint.h>
@@ -62,20 +55,15 @@
 #define restrict
 #endif
 
-#define PREFETCH(x, hint) _mm_prefetch((const char *)(x), (hint));
+#define PREFETCH(x, hint) /*_mm_prefetch((const char *)(x), (hint));*/
 #define PREFETCH_OUT(x, hint) /* disabled */
 
-#ifdef __XOP__
-#define ARX(out, in1, in2, s) \
-	out = _mm_xor_si128(out, _mm_roti_epi32(_mm_add_epi32(in1, in2), s));
-#else
 #define ARX(out, in1, in2, s) \
 	{ \
-		__m128i T = _mm_add_epi32(in1, in2); \
-		out = _mm_xor_si128(out, _mm_slli_epi32(T, s)); \
-		out = _mm_xor_si128(out, _mm_srli_epi32(T, 32-s)); \
+		uint32x4_t T = vaddq_u32(in1, in2); \
+		out = veorq_u32(out, vshlq_n_u32(T, s)); \
+		out = veorq_u32(out, vshrq_n_u32(T, 32-s)); \
 	}
-#endif
 
 #define SALSA20_2ROUNDS \
 	/* Operate on "columns" */ \
@@ -85,9 +73,9 @@
 	ARX(X0, X3, X2, 18) \
 \
 	/* Rearrange data */ \
-	X1 = _mm_shuffle_epi32(X1, 0x93); \
-	X2 = _mm_shuffle_epi32(X2, 0x4E); \
-	X3 = _mm_shuffle_epi32(X3, 0x39); \
+	X1 = vextq_u32(X1, X1, 3); \
+	X2 = vextq_u32(X2, X2, 2); \
+	X3 = vextq_u32(X3, X3, 1); \
 \
 	/* Operate on "rows" */ \
 	ARX(X3, X0, X1, 7) \
@@ -96,9 +84,9 @@
 	ARX(X0, X1, X2, 18) \
 \
 	/* Rearrange data */ \
-	X1 = _mm_shuffle_epi32(X1, 0x39); \
-	X2 = _mm_shuffle_epi32(X2, 0x4E); \
-	X3 = _mm_shuffle_epi32(X3, 0x93);
+	X1 = vextq_u32(X1, X1, 1); \
+	X2 = vextq_u32(X2, X2, 2); \
+	X3 = vextq_u32(X3, X3, 3);
 
 /**
  * Apply the salsa20/8 core to the block provided in (X0 ... X3).
@@ -113,33 +101,33 @@
 		SALSA20_2ROUNDS \
 		SALSA20_2ROUNDS \
 		SALSA20_2ROUNDS \
-		(out)[0] = X0 = _mm_add_epi32(X0, Y0); \
-		(out)[1] = X1 = _mm_add_epi32(X1, Y1); \
-		(out)[2] = X2 = _mm_add_epi32(X2, Y2); \
-		(out)[3] = X3 = _mm_add_epi32(X3, Y3); \
+		(out)[0] = X0 = vaddq_u32(X0, Y0); \
+		(out)[1] = X1 = vaddq_u32(X1, Y1); \
+		(out)[2] = X2 = vaddq_u32(X2, Y2); \
+		(out)[3] = X3 = vaddq_u32(X3, Y3); \
 	}
 #define SALSA20_8(out) \
-	SALSA20_8_BASE(__m128i, out)
+	SALSA20_8_BASE(uint32x4_t, out)
 
 /**
  * Apply the salsa20/8 core to the block provided in (X0 ... X3) ^ (Z0 ... Z3).
  */
 #define SALSA20_8_XOR_ANY(maybe_decl, Z0, Z1, Z2, Z3, out) \
-	X0 = _mm_xor_si128(X0, Z0); \
-	X1 = _mm_xor_si128(X1, Z1); \
-	X2 = _mm_xor_si128(X2, Z2); \
-	X3 = _mm_xor_si128(X3, Z3); \
+	X0 = veorq_u32(X0, Z0); \
+	X1 = veorq_u32(X1, Z1); \
+	X2 = veorq_u32(X2, Z2); \
+	X3 = veorq_u32(X3, Z3); \
 	SALSA20_8_BASE(maybe_decl, out)
 
 #define SALSA20_8_XOR_MEM(in, out) \
-	SALSA20_8_XOR_ANY(__m128i, (in)[0], (in)[1], (in)[2], (in)[3], out)
+	SALSA20_8_XOR_ANY(uint32x4_t, (in)[0], (in)[1], (in)[2], (in)[3], out)
 
 #define SALSA20_8_XOR_REG(out) \
 	SALSA20_8_XOR_ANY(/* empty */, Y0, Y1, Y2, Y3, out)
 
 typedef union {
 	uint32_t w[16];
-	__m128i q[4];
+	uint32x4_t q[4];
 } salsa20_blk_t;
 
 /**
@@ -151,7 +139,7 @@ static inline void
 blockmix_salsa8(const salsa20_blk_t *restrict Bin,
     salsa20_blk_t *restrict Bout, size_t r)
 {
-	__m128i X0, X1, X2, X3;
+	uint32x4_t X0, X1, X2, X3;
 	size_t i;
 
 	r--;
@@ -212,43 +200,13 @@ blockmix_salsa8(const salsa20_blk_t *restrict Bin,
  * when building with SSE4.1 or newer, which is not available on older CPUs
  * where this instruction has higher latency.
  */
-#if 1
+#define LO32(X) \
+	vmovn_u64(vreinterpretq_u64_u32(X))
 #define HI32(X) \
-	_mm_shuffle_epi32((X), _MM_SHUFFLE(2,3,0,1))
-#elif 0
-#define HI32(X) \
-	_mm_srli_si128((X), 4)
-#else
-#define HI32(X) \
-	_mm_srli_epi64((X), 32)
-#endif
+	LO32(vrev64q_u32(X))
 
-#if defined(__x86_64__) && (defined(__ICC) || defined(__llvm__))
-/* Intel's name, also supported by recent gcc */
-#define EXTRACT64(X) _mm_cvtsi128_si64(X)
-#elif defined(__x86_64__) && !defined(_MSC_VER) && !defined(__OPEN64__)
-/* gcc got the 'x' name earlier than non-'x', MSVC and Open64 had bugs */
-#define EXTRACT64(X) _mm_cvtsi128_si64x(X)
-#elif defined(__x86_64__) && defined(__SSE4_1__)
-/* No known bugs for this intrinsic */
-#include <smmintrin.h>
-#define EXTRACT64(X) _mm_extract_epi64((X), 0)
-#elif defined(__SSE4_1__)
-/* 32-bit */
-#include <smmintrin.h>
-#if 0
-/* This is currently unused by the code below, which instead uses these two
- * intrinsics explicitly when (!defined(__x86_64__) && defined(__SSE4_1__)) */
 #define EXTRACT64(X) \
-	((uint64_t)(uint32_t)_mm_cvtsi128_si32(X) | \
-	((uint64_t)(uint32_t)_mm_extract_epi32((X), 1) << 32))
-#endif
-#else
-/* 32-bit or compilers with known past bugs in _mm_cvtsi128_si64*() */
-#define EXTRACT64(X) \
-	((uint64_t)(uint32_t)_mm_cvtsi128_si32(X) | \
-	((uint64_t)(uint32_t)_mm_cvtsi128_si32(HI32(X)) << 32))
-#endif
+	vgetq_lane_u64(vreinterpretq_u64_u32(X), 0)
 
 /* This is tunable */
 #define S_BITS 8
@@ -266,27 +224,14 @@ blockmix_salsa8(const salsa20_blk_t *restrict Bin,
 #define S_MASK2 (((uint64_t)S_MASK << 32) | S_MASK)
 #define S_SIZE_ALL (S_N * S_SIZE1 * S_SIMD * 8)
 
-#if !defined(__x86_64__) && defined(__SSE4_1__)
-/* 32-bit with SSE4.1 */
-#define PWXFORM_X_T __m128i
-#define PWXFORM_SIMD(X, x, s0, s1) \
-	x = _mm_and_si128(X, _mm_set1_epi64x(S_MASK2)); \
-	s0 = *(const __m128i *)(S0 + (uint32_t)_mm_cvtsi128_si32(x)); \
-	s1 = *(const __m128i *)(S1 + (uint32_t)_mm_extract_epi32(x, 1)); \
-	X = _mm_mul_epu32(HI32(X), X); \
-	X = _mm_add_epi64(X, s0); \
-	X = _mm_xor_si128(X, s1);
-#else
-/* 64-bit, or 32-bit without SSE4.1 */
 #define PWXFORM_X_T uint64_t
 #define PWXFORM_SIMD(X, x, s0, s1) \
 	x = EXTRACT64(X) & S_MASK2; \
-	s0 = *(const __m128i *)(S0 + (uint32_t)x); \
-	s1 = *(const __m128i *)(S1 + (x >> 32)); \
-	X = _mm_mul_epu32(HI32(X), X); \
-	X = _mm_add_epi64(X, s0); \
-	X = _mm_xor_si128(X, s1);
-#endif
+	s0 = *(const uint32x4_t *)(S0 + (uint32_t)x); \
+	s1 = *(const uint32x4_t *)(S1 + (x >> 32)); \
+	X = vreinterpretq_u32_u64(vmull_u32(HI32(X), LO32(X))); \
+	X = vreinterpretq_u32_u64(vaddq_u64(vreinterpretq_u64_u32(X), vreinterpretq_u64_u32(s0))); \
+	X = veorq_u32(X, s1);
 
 #define PWXFORM_ROUND \
 	PWXFORM_SIMD(X0, x0, s00, s01) \
@@ -297,17 +242,17 @@ blockmix_salsa8(const salsa20_blk_t *restrict Bin,
 #define PWXFORM \
 	{ \
 		PWXFORM_X_T x0, x1, x2, x3; \
-		__m128i s00, s01, s10, s11, s20, s21, s30, s31; \
+		uint32x4_t s00, s01, s10, s11, s20, s21, s30, s31; \
 		PWXFORM_ROUND PWXFORM_ROUND \
 		PWXFORM_ROUND PWXFORM_ROUND \
 		PWXFORM_ROUND PWXFORM_ROUND \
 	}
 
 #define XOR4(in) \
-	X0 = _mm_xor_si128(X0, (in)[0]); \
-	X1 = _mm_xor_si128(X1, (in)[1]); \
-	X2 = _mm_xor_si128(X2, (in)[2]); \
-	X3 = _mm_xor_si128(X3, (in)[3]);
+	X0 = veorq_u32(X0, (in)[0]); \
+	X1 = veorq_u32(X1, (in)[1]); \
+	X2 = veorq_u32(X2, (in)[2]); \
+	X3 = veorq_u32(X3, (in)[3]);
 
 #define OUT(out) \
 	(out)[0] = X0; \
@@ -322,10 +267,10 @@ blockmix_salsa8(const salsa20_blk_t *restrict Bin,
  */
 static void
 blockmix(const salsa20_blk_t *restrict Bin, salsa20_blk_t *restrict Bout,
-    size_t r, const __m128i *restrict S)
+    size_t r, const uint32x4_t *restrict S)
 {
 	const uint8_t * S0, * S1;
-	__m128i X0, X1, X2, X3;
+	uint32x4_t X0, X1, X2, X3;
 	size_t i;
 
 	if (!S) {
@@ -371,17 +316,17 @@ blockmix(const salsa20_blk_t *restrict Bin, salsa20_blk_t *restrict Bout,
 }
 
 #define XOR4_2(in1, in2) \
-	X0 = _mm_xor_si128((in1)[0], (in2)[0]); \
-	X1 = _mm_xor_si128((in1)[1], (in2)[1]); \
-	X2 = _mm_xor_si128((in1)[2], (in2)[2]); \
-	X3 = _mm_xor_si128((in1)[3], (in2)[3]);
+	X0 = veorq_u32((in1)[0], (in2)[0]); \
+	X1 = veorq_u32((in1)[1], (in2)[1]); \
+	X2 = veorq_u32((in1)[2], (in2)[2]); \
+	X3 = veorq_u32((in1)[3], (in2)[3]);
 
 static inline uint32_t
 blockmix_salsa8_xor(const salsa20_blk_t *restrict Bin1,
     const salsa20_blk_t *restrict Bin2, salsa20_blk_t *restrict Bout,
     size_t r, int Bin2_in_ROM)
 {
-	__m128i X0, X1, X2, X3;
+	uint32x4_t X0, X1, X2, X3;
 	size_t i;
 
 	r--;
@@ -446,16 +391,16 @@ blockmix_salsa8_xor(const salsa20_blk_t *restrict Bin1,
 	XOR4(Bin1[r * 2 + 1].q)
 	SALSA20_8_XOR_MEM(Bin2[r * 2 + 1].q, Bout[r * 2 + 1].q)
 
-	return _mm_cvtsi128_si32(X0);
+	return vgetq_lane_u32(X0, 0);
 }
 
 static uint32_t
 blockmix_xor(const salsa20_blk_t *restrict Bin1,
     const salsa20_blk_t *restrict Bin2, salsa20_blk_t *restrict Bout,
-    size_t r, int Bin2_in_ROM, const __m128i *restrict S)
+    size_t r, int Bin2_in_ROM, const uint32x4_t *restrict S)
 {
 	const uint8_t * S0, * S1;
-	__m128i X0, X1, X2, X3;
+	uint32x4_t X0, X1, X2, X3;
 	size_t i;
 
 	if (!S)
@@ -508,22 +453,22 @@ blockmix_xor(const salsa20_blk_t *restrict Bin1,
 	/* B'_i <-- H(B'_i) */
 	SALSA20_8(Bout[i].q)
 
-	return _mm_cvtsi128_si32(X0);
+	return vgetq_lane_u32(X0, 0);
 }
 
 #undef XOR4
 #define XOR4(in, out) \
-	(out)[0] = Y0 = _mm_xor_si128((in)[0], (out)[0]); \
-	(out)[1] = Y1 = _mm_xor_si128((in)[1], (out)[1]); \
-	(out)[2] = Y2 = _mm_xor_si128((in)[2], (out)[2]); \
-	(out)[3] = Y3 = _mm_xor_si128((in)[3], (out)[3]);
+	(out)[0] = Y0 = veorq_u32((in)[0], (out)[0]); \
+	(out)[1] = Y1 = veorq_u32((in)[1], (out)[1]); \
+	(out)[2] = Y2 = veorq_u32((in)[2], (out)[2]); \
+	(out)[3] = Y3 = veorq_u32((in)[3], (out)[3]);
 
 static inline uint32_t
 blockmix_salsa8_xor_save(const salsa20_blk_t *restrict Bin1,
     salsa20_blk_t *restrict Bin2, salsa20_blk_t *restrict Bout,
     size_t r)
 {
-	__m128i X0, X1, X2, X3, Y0, Y1, Y2, Y3;
+	uint32x4_t X0, X1, X2, X3, Y0, Y1, Y2, Y3;
 	size_t i;
 
 	r--;
@@ -574,22 +519,22 @@ blockmix_salsa8_xor_save(const salsa20_blk_t *restrict Bin1,
 	XOR4(Bin1[r * 2 + 1].q, Bin2[r * 2 + 1].q)
 	SALSA20_8_XOR_REG(Bout[r * 2 + 1].q)
 
-	return _mm_cvtsi128_si32(X0);
+	return vgetq_lane_u32(X0, 0);
 }
 
 #define XOR4_Y \
-	X0 = _mm_xor_si128(X0, Y0); \
-	X1 = _mm_xor_si128(X1, Y1); \
-	X2 = _mm_xor_si128(X2, Y2); \
-	X3 = _mm_xor_si128(X3, Y3);
+	X0 = veorq_u32(X0, Y0); \
+	X1 = veorq_u32(X1, Y1); \
+	X2 = veorq_u32(X2, Y2); \
+	X3 = veorq_u32(X3, Y3);
 
 static uint32_t
 blockmix_xor_save(const salsa20_blk_t *restrict Bin1,
     salsa20_blk_t *restrict Bin2, salsa20_blk_t *restrict Bout,
-    size_t r, const __m128i *restrict S)
+    size_t r, const uint32x4_t *restrict S)
 {
 	const uint8_t * S0, * S1;
-	__m128i X0, X1, X2, X3, Y0, Y1, Y2, Y3;
+	uint32x4_t X0, X1, X2, X3, Y0, Y1, Y2, Y3;
 	size_t i;
 
 	if (!S)
@@ -632,7 +577,7 @@ blockmix_xor_save(const salsa20_blk_t *restrict Bin1,
 	/* B'_i <-- H(B'_i) */
 	SALSA20_8(Bout[i].q)
 
-	return _mm_cvtsi128_si32(X0);
+	return vgetq_lane_u32(X0, 0);
 }
 
 #undef ARX
