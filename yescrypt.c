@@ -8,7 +8,7 @@
 
 #include "yescrypt.h"
 #include "yescryptcommon.c"
-#include "yescrypt-simd.c"
+#include "yescrypt-best.c"
 #include "sha256_Y.c"
 
 int scanhash_yescrypt(int thr_id, uint32_t *pdata, const uint32_t *ptarget,
