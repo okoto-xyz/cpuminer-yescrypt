@@ -33,30 +33,26 @@ Basic *nix build instructions:
     ./configure CFLAGS="-O3"
     make
 	
-
+	
 Notes for AIX users:
 
 	* To build a 64-bit binary, export OBJECT_MODE=64
 	* GNU-style long options are not supported, but are accessible
 	  via configuration file
 
-Basic Windows build instructions, using MinGW:
 
-	Install MinGW and the MSYS Developer Tool Kit (http://www.mingw.org/)
-	* Make sure you have mstcpip.h in MinGW\include
+Windows build instructions on Ubuntu 16.04LTS:
 
-	If using MinGW-w64, install pthreads-w64
-	
-	Install libcurl devel (http://curl.haxx.se/download.html)
-	
-		* Make sure you have libcurl.m4 in MinGW\share\aclocal
-		* Make sure you have curl-config in MinGW\bin
+	sudo apt-get install gcc-mingw-w64
+	cd cpuminer/depend
+	sh depend.sh
+	cd cpuminer
+	./autogen.sh
+	LDFLAGS="-L depend/curl-7.38.0-devel-mingw64/lib64 -static" LIBCURL="-lcurldll" \
+	CFLAGS="-O3 -msse4.1 -funroll-loops -fomit-frame-pointer" \
+	./configure --host=x86_64-w64-mingw32 --with-libcurl=depend/curl-7.38.0-devel-mingw64
+	make
 
-	In the MSYS shell, run:
-
-    ./autogen.sh	# only needed if building from git repo
-    LIBCURL="-lcurldll" ./configure CFLAGS="-O3"
-    make
 
 Architecture-specific notes:
 
