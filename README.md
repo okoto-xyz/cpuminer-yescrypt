@@ -1,12 +1,12 @@
-This is a multi-threaded CPU miner for [GlobalBoost-Y (BSTY)](http://globalboo.st/?CohibAA) using the [Yescrypt Algorithm](litecoin-p2pool.com/yescrypt/yescrypt-v0.pdf)
+This is a multi-threaded CPU miner for [Koto (KOTO)](http://koto.cash) using the [Yescrypt Algorithm](http://www.openwall.com/presentations/BSidesLjubljana2017-Yescrypt-Large-scale-Password-Hashing/BSidesLjubljana2017-Yescrypt-Large-scale-Password-Hashing.pdf)
 
-(fork of Jeff Garzik's reference cpuminer)
+(fork of Jeff Garzik's reference cpuminer https://github.com/noncepool/cpuminer-yescrypt)
 
 License: GPLv2.  See COPYING for details.
 
-Git tree:   https://github.com/noncepool/cpuminer-yescrypt
+Git tree:   https://github.com/koto-dev/cpuminer-yescrypt/
 
-Windows Binary: https://mega.co.nz/#!uQEQVCbD!PXXZzUHRWA0rnUQWRAp9uAKvCO6222aH1IvWWikLFU8
+Windows Binary: 
 
 Dependencies:
 
@@ -41,16 +41,25 @@ Notes for AIX users:
 	  via configuration file
 
 
-Windows build instructions on Ubuntu 16.04LTS:
+Windows x64 build instructions on Ubuntu 16.04LTS:
 
 	sudo apt-get install gcc-mingw-w64
-	cd cpuminer/depend
+	cd depend
 	sh depend.sh
 	cd cpuminer
 	./autogen.sh
 	LDFLAGS="-L depend/curl-7.38.0-devel-mingw64/lib64 -static" LIBCURL="-lcurldll" \
 	CFLAGS="-O3 -msse4.1 -funroll-loops -fomit-frame-pointer" \
 	./configure --host=x86_64-w64-mingw32 --with-libcurl=depend/curl-7.38.0-devel-mingw64
+	make
+
+	* Static version
+	
+	cd deps
+	./build_win_x64_deps.sh
+	cd ..
+	autoreconf -fi -I./deps/x86_64-w64-mingw32/share/aclocal
+	./configure --host=x86_64-w64-mingw32 CFLAGS="-O3 -msse4.1 -funroll-loops -fomit-frame-pointer -I./deps/x86_64-w64-mingw32/include -std=c99 -DWIN32 -DCURL_STATICLIB -DPTW32_STATIC_LIB" --with-libcurl=deps/x86_64-w64-mingw32 LDFLAGS="-L./deps/x86_64-w64-mingw32/lib -static"
 	make
 
 
@@ -66,7 +75,8 @@ Architecture-specific notes:
 	x86:	The miner checks for SSE2 instructions support at runtime,
 		and uses them if they are available.
 		
-	x86-64:	The miner can take advantage of AVX, AVX2 and XOP instructions,
+	x86-64:	(Note: SSE works better than AVX and AVX2 for Yescrypt)
+		The miner can take advantage of AVX, AVX2 and XOP instructions,
 		but only if both the CPU and the operating system support them.
 		
 		    * Linux supports AVX starting from kernel version 2.6.30.
@@ -81,8 +91,8 @@ Architecture-specific notes:
 
 Usage instructions:  Run "minerd --help" to see options.
 
-To Connect to BSTY-P2Pool using your GlobalBoost-Y Wallet Address:
-    ./minerd --algo=yescrypt -o 54.68.63.254:7225 -u BSTYaddress -p x
+To Connect to pool using your Koto Wallet Address:
+    ./minerd -a yescrypt -o stratum+tcp://Koto.pool.address:port -u Your_Koto_Address -p x
 
 Note: Do not mine to online wallet addresses, including exchanges, as you may experience loss of coins due to how newly mined coins are confirmed.
 
@@ -101,4 +111,3 @@ and all_proxy environment variables.
 Also many issues and FAQs are covered in these forum threads dedicated to this program:
 
 * [Original Pooler CPUMiner Bitcointalk Thread](https://bitcointalk.org/index.php?topic=55038.0)
-* [GlobalBoost-Y BSTY Bitcointalk Official Thread](https://bitcointalk.org/index.php?topic=775289.0)
