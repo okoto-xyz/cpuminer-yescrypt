@@ -44,24 +44,22 @@ Notes for AIX users:
 Windows x64 build instructions on Ubuntu 16.04LTS:
 
 	sudo apt-get install gcc-mingw-w64
-	cd depend
-	sh depend.sh
-	cd cpuminer
-	./autogen.sh
-	LDFLAGS="-L depend/curl-7.40.0-devel-mingw64/lib64 -static" LIBCURL="-lcurldll" \
-	CFLAGS="-O3 -msse4.1 -funroll-loops -fomit-frame-pointer" \
-	./configure --host=x86_64-w64-mingw32 --with-libcurl=depend/curl-7.40.0-devel-mingw64
-	make
+        cd depend
+        sh depend.sh
+        cd ..
+        ./autogen.sh
+        LDFLAGS="-L./depend/curl-7.40.0-devel-mingw64/lib64 -static" LIBCURL="-lcurldll" CFLAGS="-O3 -msse4.1 -funroll-loops -fomit-frame-pointer" ./configure --host=x86_64-w64-mingw32 --with-libcurl=depend/curl-7.40.0-devel-mingw64
+        make
 
 
-	* Static version
-	
-	cd deps
-	./build_win_x64_deps.sh
-	cd ..
-	autoreconf -fi -I./deps/x86_64-w64-mingw32/share/aclocal
-	./configure --host=x86_64-w64-mingw32 CFLAGS="-O3 -msse4.1 -funroll-loops -fomit-frame-pointer -I./deps/x86_64-w64-mingw32/include -std=c99 -DWIN32 -DCURL_STATICLIB -DPTW32_STATIC_LIB" --with-libcurl=deps/x86_64-w64-mingw32 LDFLAGS="-L./deps/x86_64-w64-mingw32/lib -static"
-	make
+        * Static version
+
+        cd deps
+        ./build_win_x64_deps.sh
+        cd ..
+        autoreconf -fi -I./deps/x86_64-w64-mingw32/share/aclocal
+        LDFLAGS="-L./deps/x86_64-w64-mingw32/lib -static" CFLAGS="-O3 -msse4.1 -funroll-loops -fomit-frame-pointer -I./deps/x86_64-w64-mingw32/include -std=c99 -DWIN32 -DCURL_STATICLIB -DPTW32_STATIC_LIB" ./configure --host=x86_64-w64-mingw32 --with-libcurl=deps/x86_64-w64-mingw32
+        make
 
 
 Architecture-specific notes:
