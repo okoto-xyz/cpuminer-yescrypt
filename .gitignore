@@ -25,4 +25,13 @@ config.guess
 config.sub
 
 mingw32-config.cache
+depend/curl-7.40.0-devel-mingw32.zip
+depend/curl-7.40.0-devel-mingw32/
+depend/curl-7.40.0-devel-mingw64.zip
+depend/curl-7.40.0-devel-mingw64/
+deps/curl-7.54.1.tar.gz
+deps/curl-7.54.1/
+deps/i686-w64-mingw32/
+deps/x86_64-w64-mingw32/
+deps/pthread-win32/
 
