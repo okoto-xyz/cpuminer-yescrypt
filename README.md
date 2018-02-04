@@ -41,7 +41,7 @@ Notes for AIX users:
 	  via configuration file
 
 
-Windows x64 build instructions on Ubuntu 16.04LTS:
+Windows x64 (64-bit) build instructions on Ubuntu 16.04LTS / 17.10:
 
 	sudo apt-get install gcc-mingw-w64
         cd depend
@@ -59,6 +59,27 @@ Windows x64 build instructions on Ubuntu 16.04LTS:
         cd ..
         autoreconf -fi -I./deps/x86_64-w64-mingw32/share/aclocal
         LDFLAGS="-L./deps/x86_64-w64-mingw32/lib -static" CFLAGS="-O3 -msse4.1 -funroll-loops -fomit-frame-pointer -I./deps/x86_64-w64-mingw32/include -std=c99 -DWIN32 -DCURL_STATICLIB -DPTW32_STATIC_LIB" ./configure --host=x86_64-w64-mingw32 --with-libcurl=deps/x86_64-w64-mingw32
+        make
+
+
+Windows x86 (32-bit) build instructions on Ubuntu 16.04LTS / 17.10:
+
+	sudo apt-get install gcc-mingw-w64
+        cd depend
+        sh depend.sh
+        cd ..
+        ./autogen.sh
+        LDFLAGS="-L./depend/curl-7.40.0-devel-mingw32/lib -static" LIBCURL="-lcurldll" CFLAGS="-O3 -msse4.1 -funroll-loops -fomit-frame-pointer" ./configure --host=i686-w64-mingw32 --with-libcurl=depend/curl-7.40.0-devel-mingw32
+        make
+
+
+        * Static version
+
+        cd deps
+        ./build_win_x86_deps.sh
+        cd ..
+        autoreconf -fi -I./deps/i686-w64-mingw32/share/aclocal
+        LDFLAGS="-L./deps/i686-w64-mingw32/lib -static" CFLAGS="-O3 -msse4.1 -funroll-loops -fomit-frame-pointer -I./deps/i686-w64-mingw32/include -std=c99 -DWIN32 -DCURL_STATICLIB -DPTW32_STATIC_LIB" ./configure --host=i686-w64-mingw32 --with-libcurl=deps/i686-w64-mingw32
         make
 
 
