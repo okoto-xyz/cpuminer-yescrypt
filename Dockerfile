@@ -10,6 +10,7 @@ MAINTAINER	Guillaume J. Charmes <guillaume@charmes.net>
 
 RUN		apt-get update -qq
 
+RUN		apt-get install -qqy autotools-dev
 RUN		apt-get install -qqy automake
 RUN		apt-get install -qqy libcurl4-openssl-dev
 RUN		apt-get install -qqy git

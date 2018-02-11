@@ -16,15 +16,15 @@ Dependencies:
 
 Install Build Dependencies on Debian, Ubuntu and other APT-based distros:
 
-    sudo apt-get install build-essential libcurl4-openssl-dev
+    sudo apt-get install build-essential libcurl4-openssl-dev autotools-dev automake
 
 Install Build Dependencies on Fedora, RHEL, CentOS and other yum-based distros:
 
-    sudo yum install gcc make curl-devel
+    sudo yum install gcc make curl-devel automake
 
 Install Build Dependencies on OpenSUSE and other ZYpp-based distros:
 
-    sudo zypper in gcc make libcurl-devel
+    sudo zypper in gcc make libcurl-devel automake
 
 Basic *nix build instructions:
 
