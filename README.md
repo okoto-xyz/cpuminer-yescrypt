@@ -1,10 +1,10 @@
-This is a multi-threaded CPU miner for [Koto (KOTO)](http://koto.cash) using the [Yescrypt Algorithm](http://www.openwall.com/presentations/BSidesLjubljana2017-Yescrypt-Large-scale-Password-Hashing/BSidesLjubljana2017-Yescrypt-Large-scale-Password-Hashing.pdf)
+This is a multi-threaded CPU miner for [Koto (KOTO)](https://ko-to.org) using the [Yescrypt Algorithm](http://www.openwall.com/presentations/BSidesLjubljana2017-Yescrypt-Large-scale-Password-Hashing/BSidesLjubljana2017-Yescrypt-Large-scale-Password-Hashing.pdf)
 
 (fork of Jeff Garzik's reference cpuminer https://github.com/noncepool/cpuminer-yescrypt)
 
 License: GPLv2.  See COPYING for details.
 
-Git tree:   https://github.com/koto-dev/cpuminer-yescrypt/
+Git tree:   https://github.com/KotoDevelopers/cpuminer-yescrypt/
 
 Windows Binary:
 
