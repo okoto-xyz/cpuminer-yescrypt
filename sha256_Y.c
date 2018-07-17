@@ -353,6 +353,7 @@ HMAC_SHA256_Final_Y(unsigned char digest[32], HMAC_SHA256_CTX_Y * ctx)
 	memset(ihash, 0, 32);
 }
 
+#if 0
 /**
  * PBKDF2_SHA256(passwd, passwdlen, salt, saltlen, c, buf, dkLen):
  * Compute PBKDF2(passwd, salt, c, dkLen) using HMAC-SHA256 as the PRF, and
@@ -409,3 +410,4 @@ PBKDF2_SHA256(const uint8_t * passwd, size_t passwdlen, const uint8_t * salt,
 	/* Clean PShctx, since we never called _Final on it. */
 	memset(&PShctx, 0, sizeof(HMAC_SHA256_CTX_Y));
 }
+#endif
