@@ -35,6 +35,10 @@
 
 #include "sha256.h"
 
+#ifdef __SHA__
+#include "sha256_shani.h"
+#endif
+
 #ifdef __ICC
 /* Miscompile with icc 14.0.0 (at least), so don't use restrict there */
 #define restrict
@@ -137,6 +141,11 @@ SHA256_Transform(uint32_t state[static restrict 8],
     const uint8_t block[static restrict 64],
     uint32_t W[static restrict 64], uint32_t S[static restrict 8])
 {
+#ifdef __SHA__
+	SHA256_Transform_shani(state, block);
+	return;
+#endif
+
 	int i;
 
 	/* 1. Prepare the first part of the message schedule W. */
