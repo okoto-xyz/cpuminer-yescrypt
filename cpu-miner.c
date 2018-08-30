@@ -1190,7 +1190,7 @@ static void *miner_thread(void *userdata)
 			switch (opt_algo) {
 			case ALGO_YESCRYPT:
 			case ALGO_YESPOWER:
-				max64 = 0x3fffff;
+				max64 = 0xfff;
 				break;
 			}
 		}
