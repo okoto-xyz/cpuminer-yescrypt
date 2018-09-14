@@ -12,7 +12,7 @@
 #include "sha256_Y.c"
 
 int scanhash_yescrypt(int thr_id, uint32_t *pdata, const uint32_t *ptarget,
-	uint32_t max_nonce, unsigned long *hashes_done)
+	uint32_t max_nonce, unsigned long *hashes_done, int perslen)
 {
 	uint32_t n = pdata[19] - 1;
 	const uint32_t first_nonce = pdata[19];
@@ -38,7 +38,7 @@ int scanhash_yescrypt(int thr_id, uint32_t *pdata, const uint32_t *ptarget,
             if (opt_debug) {
                 bin2hex(hash_str, (unsigned char *)hash64, 32);
                 bin2hex(target_str, (unsigned char *)ptarget, 32);
-                bin2hex(data_str, (unsigned char *)endiandata, 80);
+                bin2hex(data_str, (unsigned char *)endiandata, perslen);
                 applog(LOG_DEBUG, "DEBUG: [%d thread] Found share!\ndata   %s\nhash   %s\ntarget %s", thr_id, 
                     data_str,
                     hash_str,

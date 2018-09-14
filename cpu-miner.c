@@ -259,7 +259,7 @@ static struct option const options[] = {
 };
 
 struct work {
-	uint32_t data[32];
+	uint32_t data[40];
 	uint32_t target[8];
 
 	int height;
@@ -269,6 +269,8 @@ struct work {
 	char *job_id;
 	size_t xnonce2_len;
 	unsigned char *xnonce2;
+
+	bool sapling;
 };
 
 static struct work g_work;
@@ -357,12 +359,14 @@ static bool gbt_work_decode(const json_t *val, struct work *work)
 	int tx_count, tx_size;
 	unsigned char txc_vi[9];
 	unsigned char (*merkle_tree)[32] = NULL;
+	uint32_t final_sapling_hash[8];
 	bool coinbase_append = false;
 	bool submit_coinbase = false;
 	bool version_force = false;
 	bool version_reduce = false;
 	json_t *tmp, *txa;
 	bool rc = false;
+	bool sapling = false;
 
 	tmp = json_object_get(val, "mutable");
 	if (tmp && json_is_array(tmp)) {
@@ -395,7 +399,9 @@ static bool gbt_work_decode(const json_t *val, struct work *work)
 		goto out;
 	}
 	version = json_integer_value(tmp);
-	if (version > 4) {
+	if (version == 5) {
+		sapling = true;
+	} else if (version > 4) {
 		if (version_reduce) {
 			version = 4;
 		} else if (!version_force) {
@@ -419,6 +425,13 @@ static bool gbt_work_decode(const json_t *val, struct work *work)
 	if (unlikely(!jobj_binary(val, "bits", &bits, sizeof(bits)))) {
 		applog(LOG_ERR, "JSON invalid bits");
 		goto out;
+	}
+
+	if (sapling) {
+		if (unlikely(!jobj_binary(val, "finalsaplingroothash", final_sapling_hash, sizeof(final_sapling_hash)))) {
+			applog(LOG_ERR, "JSON invalid finalsaplingroothash");
+			goto out;
+		}
 	}
 
 	/* find count and size of transactions */
@@ -576,9 +589,20 @@ static bool gbt_work_decode(const json_t *val, struct work *work)
 		work->data[9 + i] = be32dec((uint32_t *)merkle_tree[0] + i);
 	work->data[17] = swab32(curtime);
 	work->data[18] = le32dec(&bits);
-	memset(work->data + 19, 0x00, 52);
-	work->data[20] = 0x80000000;
-	work->data[31] = 0x00000280;
+	if (sapling) {
+		work->sapling = true;
+		memset(work->data + 28, 0x00, 48);
+		for (i = 0; i < 8; i++)
+			work->data[27 - i] = le32dec(final_sapling_hash + i);
+		work->data[19] = 0;
+		work->data[28] = 0x80000000;
+		work->data[39] = 0x00000280;
+	} else {
+		work->sapling = false;
+		memset(work->data + 19, 0x00, 52);
+		work->data[20] = 0x80000000;
+		work->data[31] = 0x00000280;
+	}
 
 	if (unlikely(!jobj_binary(val, "target", target, sizeof(target)))) {
 		applog(LOG_ERR, "JSON invalid target");
@@ -692,23 +716,27 @@ static bool submit_upstream_work(CURL *curl, struct work *work)
 		}
 	} else if (work->txs) {
 		char *req;
+		int datasize = 80;
+		if (work->sapling) {
+			datasize = 112;
+		}
 
 		for (i = 0; i < ARRAY_SIZE(work->data); i++)
 			be32enc(work->data + i, work->data[i]);
-		bin2hex(data_str, (unsigned char *)work->data, 80);
+		bin2hex(data_str, (unsigned char *)work->data, datasize);
 		if (work->workid) {
 			char *params;
 			val = json_object();
 			json_object_set_new(val, "workid", json_string(work->workid));
 			params = json_dumps(val, 0);
 			json_decref(val);
-			req = malloc(128 + 2*80 + strlen(work->txs) + strlen(params));
+			req = malloc(128 + 2*datasize + strlen(work->txs) + strlen(params));
 			sprintf(req,
 				"{\"method\": \"submitblock\", \"params\": [\"%s%s\", %s], \"id\":1}\r\n",
 				data_str, work->txs, params);
 			free(params);
 		} else {
-			req = malloc(128 + 2*80 + strlen(work->txs));
+			req = malloc(128 + 2*datasize + strlen(work->txs));
 			sprintf(req,
 				"{\"method\": \"submitblock\", \"params\": [\"%s%s\"], \"id\":1}\r\n",
 				data_str, work->txs);
@@ -959,9 +987,9 @@ static bool get_work(struct thr_info *thr, struct work *work)
 	if (opt_benchmark) {
 		memset(work->data, 0x55, 76);
 		work->data[17] = swab32(time(NULL));
-		memset(work->data + 19, 0x00, 52);
-		work->data[20] = 0x80000000;
-		work->data[31] = 0x00000280;
+		memset(work->data + 27, 0x00, 52);
+		work->data[28] = 0x80000000;
+		work->data[39] = 0x00000280;
 		memset(work->target, 0x00, sizeof(work->target));
 		return true;
 	}
@@ -1044,16 +1072,26 @@ static void stratum_gen_work(struct stratum_ctx *sctx, struct work *work)
 	for (i = 0; i < sctx->xnonce2_size && !++sctx->job.xnonce2[i]; i++);
 
 	/* Assemble block header */
-	memset(work->data, 0, 128);
+	memset(work->data, 0, 160);
 	work->data[0] = le32dec(sctx->job.version);
+	work->sapling = work->data[0] == 5 ? true : false;
 	for (i = 0; i < 8; i++)
 		work->data[1 + i] = le32dec((uint32_t *)sctx->job.prevhash + i);
+	if (work->sapling) {
+		for (i = 0; i < 8; i++)
+			work->data[27 + i] = le32dec((uint32_t *)sctx->job.finalsaplinghash + i);
+	}
 	for (i = 0; i < 8; i++)
 		work->data[9 + i] = be32dec((uint32_t *)merkle_root + i);
 	work->data[17] = le32dec(sctx->job.ntime);
 	work->data[18] = le32dec(sctx->job.nbits);
-	work->data[20] = 0x80000000;
-	work->data[31] = 0x00000280;
+	if (work->sapling) {
+		work->data[28] = 0x80000000;
+		work->data[39] = 0x00000280;
+	} else {
+		work->data[20] = 0x80000000;
+		work->data[31] = 0x00000280;
+	}
 
 	pthread_mutex_unlock(&sctx->work_lock);
 
@@ -1103,6 +1141,7 @@ static void *miner_thread(void *userdata)
 		unsigned long hashes_done;
 		struct timeval tv_start, tv_end, diff;
 		int64_t max64;
+		int perslen = 80;
 		int rc;
 
 		if (have_stratum) {
@@ -1164,14 +1203,16 @@ static void *miner_thread(void *userdata)
 		gettimeofday(&tv_start, NULL);
 
 		/* scan nonces for a proof-of-work hash */
+		if (work.sapling)
+			perslen = 112;
 		switch (opt_algo) {
 		case ALGO_YESCRYPT:
 			rc = scanhash_yescrypt(thr_id, work.data, work.target,
-			                      max_nonce, &hashes_done);
+			                      max_nonce, &hashes_done, perslen);
 			break;
 		case ALGO_YESPOWER:
 			rc = scanhash_yespower(thr_id, work.data, work.target,
-			                      max_nonce, &hashes_done);
+			                      max_nonce, &hashes_done, perslen);
 			break;
 		default:
 			/* should never happen */
