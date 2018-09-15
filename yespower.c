@@ -28,7 +28,7 @@
 #include "yespower.h"
 
 int scanhash_yespower(int thr_id, uint32_t *pdata, const uint32_t *ptarget,
-        uint32_t max_nonce, unsigned long *hashes_done)
+        uint32_t max_nonce, unsigned long *hashes_done, int perslen)
 {
         uint32_t n = pdata[19] - 1;
         const uint32_t first_nonce = pdata[19];
@@ -40,7 +40,7 @@ int scanhash_yespower(int thr_id, uint32_t *pdata, const uint32_t *ptarget,
 		.N = 2048,
 		.r = 8,
 		.pers = (const uint8_t *)endiandata,
-		.perslen = 80
+		.perslen = perslen
 	};
         //we need bigendian data...
         int kk=0;
@@ -52,7 +52,7 @@ int scanhash_yespower(int thr_id, uint32_t *pdata, const uint32_t *ptarget,
         do {
                 pdata[19] = ++n;
                 be32enc(&endiandata[19], n);
-		if (yespower_tls((unsigned char *)endiandata, 80, &params, (yespower_binary_t *)hash64)) {
+		if (yespower_tls((unsigned char *)endiandata, perslen, &params, (yespower_binary_t *)hash64)) {
 		    puts("FAILED");
 		    return -1;
 		}
