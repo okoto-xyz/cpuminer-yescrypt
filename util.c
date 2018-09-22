@@ -1203,7 +1203,7 @@ static bool stratum_notify(struct stratum_ctx *sctx, json_t *params)
 		goto out;
 	}
 	hex2bin(sctx->job.version, version, 4);
-	ver = le32dec(sctx->job.version);
+	ver = be32dec(sctx->job.version);
 	if (ver == 5) {
 		finalsaplinghash = json_string_value(json_array_get(params, 9));
 		if (!finalsaplinghash || strlen(finalsaplinghash) != 64) {
