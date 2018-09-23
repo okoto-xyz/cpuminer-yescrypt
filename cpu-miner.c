@@ -1073,19 +1073,17 @@ static void stratum_gen_work(struct stratum_ctx *sctx, struct work *work)
 
 	/* Assemble block header */
 	memset(work->data, 0, 160);
+	work->sapling = be32dec(sctx->job.version) == 5 ? true : false;
 	work->data[0] = le32dec(sctx->job.version);
-	work->sapling = work->data[0] == 5 ? true : false;
 	for (i = 0; i < 8; i++)
 		work->data[1 + i] = le32dec((uint32_t *)sctx->job.prevhash + i);
-	if (work->sapling) {
-		for (i = 0; i < 8; i++)
-			work->data[27 + i] = le32dec((uint32_t *)sctx->job.finalsaplinghash + i);
-	}
 	for (i = 0; i < 8; i++)
 		work->data[9 + i] = be32dec((uint32_t *)merkle_root + i);
 	work->data[17] = le32dec(sctx->job.ntime);
 	work->data[18] = le32dec(sctx->job.nbits);
 	if (work->sapling) {
+		for (i = 0; i < 8; i++)
+			work->data[20 + i] = le32dec((uint32_t *)sctx->job.finalsaplinghash + i);
 		work->data[28] = 0x80000000;
 		work->data[39] = 0x00000280;
 	} else {
