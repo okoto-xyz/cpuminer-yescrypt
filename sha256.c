@@ -654,3 +654,20 @@ cleanup:
 	insecure_memzero(tmp32, 288);
 	insecure_memzero(&u, sizeof(u));
 }
+
+void sha256d(unsigned char *digest, const unsigned char *in, int len)
+{
+	SHA256_CTX ctx;
+	uint32_t tmp32[72];
+
+	SHA256_Init(&ctx);
+	_SHA256_Update(&ctx, in, len, tmp32);
+	_SHA256_Final(digest, &ctx, tmp32);
+	SHA256_Init(&ctx);
+	_SHA256_Update(&ctx, digest, 32, tmp32);
+	_SHA256_Final(digest, &ctx, tmp32);
+
+	/* Clean the stack. */
+	insecure_memzero(&ctx, sizeof(SHA256_CTX));
+	insecure_memzero(tmp32, 288);
+}
