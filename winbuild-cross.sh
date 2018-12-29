@@ -19,6 +19,7 @@ CFLAGS="-Wall -O3 -fomit-frame-pointer"
 mkdir release
 cp README.txt release/
 #cp /usr/i686-w64-mingw32/lib/libwinpthread-1.dll release/
+#cp /usr/lib/gcc/i686-w64-mingw32/5.3-win32/libgcc_s_sjlj-1.dll release/
 cp /usr/x86_64-w64-mingw32/lib/libwinpthread-1.dll release/
 cp curl/lib/.libs/libcurl-4.dll release/
 

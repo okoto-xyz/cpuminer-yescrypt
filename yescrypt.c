@@ -31,7 +31,7 @@ int scanhash_yescrypt(int thr_id, uint32_t *pdata, const uint32_t *ptarget,
 	do {
 		pdata[19] = ++n;
 		be32enc(&endiandata[19], n); 
-		yescrypt_hash_sp((unsigned char*) &endiandata, (unsigned char*) hash64);
+		yescrypt_hash_sp((unsigned char*) &endiandata, perslen, (unsigned char*) hash64);
 		if ((hash64[7] < ptarget[7]) || ((hash64[7] == ptarget[7]) && (hash64[6] < ptarget[6])) &&
 				fulltest(hash64, ptarget)) {
 			*hashes_done = n - first_nonce + 1;

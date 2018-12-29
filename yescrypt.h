@@ -38,8 +38,8 @@ extern "C" {
 #endif
 
 
-extern void yescrypt_hash_sp(const char *input, char *output);
-extern void yescrypt_hash(const char *input, char *output);
+extern void yescrypt_hash_sp(const char *input, int inputlen, char *output);
+extern void yescrypt_hash(const char *input, int inputlen, char *output);
 
 
 
