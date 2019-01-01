@@ -597,7 +597,9 @@ static bool gbt_work_decode(const json_t *val, struct work *work)
 			work->data[27 - i] = le32dec(final_sapling_hash + i);
 		work->data[19] = 0;
 		work->data[28] = 0x80000000;
-		work->data[39] = 0x00000280;
+		work->data[29] = 0x00000000;
+		work->data[30] = 0x00000000;
+		work->data[31] = 0x00000380;
 	} else {
 		work->sapling = false;
 		memset(work->data + 19, 0x00, 52);
@@ -988,9 +990,9 @@ static bool get_work(struct thr_info *thr, struct work *work)
 	if (opt_benchmark) {
 		memset(work->data, 0x55, 76);
 		work->data[17] = swab32(time(NULL));
-		memset(work->data + 27, 0x00, 52);
+		memset(work->data + 19, 0x00, 52);
 		work->data[28] = 0x80000000;
-		work->data[39] = 0x00000280;
+		work->data[31] = 0x00000380;
 		memset(work->target, 0x00, sizeof(work->target));
 		return true;
 	}
@@ -1086,7 +1088,9 @@ static void stratum_gen_work(struct stratum_ctx *sctx, struct work *work)
 		for (i = 0; i < 8; i++)
 			work->data[20 + i] = le32dec((uint32_t *)sctx->job.finalsaplinghash + i);
 		work->data[28] = 0x80000000;
-		work->data[39] = 0x00000280;
+		work->data[29] = 0x00000000;
+		work->data[30] = 0x00000000;
+		work->data[31] = 0x00000380;
 	} else {
 		work->data[20] = 0x80000000;
 		work->data[31] = 0x00000280;
@@ -1147,7 +1151,7 @@ static void *miner_thread(void *userdata)
 			while (time(NULL) >= g_work_time + 120)
 				sleep(1);
 			pthread_mutex_lock(&g_work_lock);
-			if (work.data[19] >= end_nonce && !memcmp(work.data, g_work.data, 76))
+			if (work.data[19] >= end_nonce && !memcmp(work.data, g_work.data, 76) && !memcmp(work.data + 20, g_work.data + 20, 32))
 				stratum_gen_work(&stratum, &g_work);
 		} else {
 			int min_scantime = have_longpoll ? LP_SCANTIME : opt_scantime;
@@ -1170,7 +1174,7 @@ static void *miner_thread(void *userdata)
 				continue;
 			}
 		}
-		if (memcmp(work.data, g_work.data, 76)) {
+		if (memcmp(work.data, g_work.data, 76) || memcmp(work.data + 20, g_work.data + 20, 32)) {
 			work_free(&work);
 			work_copy(&work, &g_work);
 			work.data[19] = 0xffffffffU / opt_n_threads * thr_id;
