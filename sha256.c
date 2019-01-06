@@ -371,6 +371,18 @@ SHA256_Buf(const void * in, size_t len, uint8_t digest[32])
 }
 
 /**
+ * sha256d(digest, in ,len):
+ * Compute the SHA256(SHA256()) hash of ${len} bytes from ${in} and write it to ${digest}.
+ */
+void
+sha256d(unsigned char *digest, const unsigned char *in, int len)
+{
+	uint8_t tmphash[32];
+	SHA256_Buf(in, len, tmphash);
+	SHA256_Buf(tmphash, 32, digest);
+}
+
+/**
  * HMAC_SHA256_Init(ctx, K, Klen):
  * Initialize the HMAC-SHA256 context ${ctx} with ${Klen} bytes of key from
  * ${K}.

@@ -1211,9 +1211,6 @@ static void *miner_thread(void *userdata)
 			perslen = 112;
 		switch (opt_algo) {
 		case ALGO_YESCRYPT:
-			rc = scanhash_yescrypt(thr_id, work.data, work.target,
-			                      max_nonce, &hashes_done, perslen);
-			break;
 		case ALGO_YESPOWER:
 			rc = scanhash_yespower(thr_id, work.data, work.target,
 			                      max_nonce, &hashes_done, perslen);
