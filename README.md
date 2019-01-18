@@ -117,7 +117,7 @@ Usage instructions:  Run `minerd --help` to see options.
 
 To Connect to pool using your Koto Wallet Address:
 ```
-    ./minerd -a yescrypt -o stratum+tcp://Koto.pool.address:port -u Your_Koto_Address -p x
+    ./minerd -o stratum+tcp://Koto.pool.address:port -u Your_Koto_Address -p x
 ```
 
 Note: Do not mine to online wallet addresses, including exchanges, as you may experience loss of coins due to how newly mined coins are confirmed.
